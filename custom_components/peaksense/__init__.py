@@ -1,5 +1,6 @@
 from homeassistant.core import HomeAssistant, ServiceCall
 from .coordinator import PeakSenseCore
+from homeassistant.helpers import discovery
 
 DOMAIN = "peaksense"
 
@@ -10,6 +11,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
     core = PeakSenseCore()
 
     hass.data[DOMAIN] = core
+
+    discovery.load_platform(hass, "sensor", DOMAIN, {}, config)
 
     async def handle_update(call: ServiceCall):
         value = float(call.data.get("value", 0))
