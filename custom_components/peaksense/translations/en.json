@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up PeakSense",
+        "description": "PeakSense will start monitoring power spikes automatically. Click Submit to activate."
+      }
+    },
+    "abort": {
+      "already_configured": "PeakSense is already set up."
+    }
+  }
+}
