@@ -3,7 +3,6 @@ class SpikeDetector:
         self.start_threshold = start_threshold
         self.end_threshold = end_threshold
         self.active = False
-
         self.current_event = None
 
     def process(self, value, timestamp):
