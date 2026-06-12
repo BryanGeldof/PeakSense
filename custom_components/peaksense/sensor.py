@@ -1,8 +1,13 @@
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -10,21 +15,21 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PeakSense sensors from a config entry."""
     core = hass.data[DOMAIN][entry.entry_id]
-
     async_add_entities([
         PeakSenseLastEventSensor(core),
         PeakSenseStatusSensor(core),
-    ])
+    ], update_before_add=True)
 
 
 class PeakSenseLastEventSensor(Entity):
-    """Shows the most recent detected power peak."""
+    """Peak wattage + details of the last completed spike."""
+
+    _attr_has_entity_name = True
 
     def __init__(self, core):
         self._core = core
-        self._state = None
+        self._state = 0
         self._attributes = {}
 
     @property
@@ -54,7 +59,7 @@ class PeakSenseLastEventSensor(Entity):
     def update(self):
         event = self._core.last_event
         if event:
-            self._state = event.get("peak")
+            self._state = event.get("peak", 0)
             self._attributes = {
                 "start": event.get("start"),
                 "end": event.get("end"),
@@ -65,7 +70,9 @@ class PeakSenseLastEventSensor(Entity):
 
 
 class PeakSenseStatusSensor(Entity):
-    """Shows whether a spike is currently being recorded."""
+    """Active while a spike is being recorded, idle otherwise."""
+
+    _attr_has_entity_name = True
 
     def __init__(self, core):
         self._core = core
@@ -87,4 +94,4 @@ class PeakSenseStatusSensor(Entity):
         return "mdi:pulse" if self._core.detector.active else "mdi:sleep"
 
     def update(self):
-        pass  # state is read live from core
+        pass
