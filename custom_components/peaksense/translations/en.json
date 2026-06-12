@@ -2,12 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up PeakSense",
-        "description": "PeakSense will start monitoring power spikes automatically. Click Submit to activate."
+        "title": "PeakSense instellen",
+        "description": "Klik op Versturen om PeakSense te activeren. Daarna verschijnen de sensoren automatisch."
       }
     },
     "abort": {
-      "already_configured": "PeakSense is already set up."
+      "already_configured": "PeakSense is al ingesteld."
     }
   }
 }
