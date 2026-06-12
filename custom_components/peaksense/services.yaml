@@ -1,0 +1,7 @@
+update:
+  name: Update PeakSense
+  description: Send power value to PeakSense engine
+  fields:
+    value:
+      description: Power value
+      example: 1200
