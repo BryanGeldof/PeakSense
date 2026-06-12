@@ -3,6 +3,8 @@ from .coordinator import PeakSenseCore
 
 DOMAIN = "peaksense"
 
+print("PEAKSENSE LOADED")
+
 async def async_setup(hass: HomeAssistant, config: dict):
 
     core = PeakSenseCore()
