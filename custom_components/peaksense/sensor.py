@@ -1,13 +1,12 @@
 from homeassistant.helpers.entity import Entity
-from datetime import datetime
 
 DOMAIN = "peaksense"
 
-class PeakSenseSensor(Entity):
-    def __init__(self, core):
-        self._core = core
+class PeakSenseLastEventSensor(Entity):
+    def __init__(self, hass):
+        self.hass = hass
         self._state = None
-        self._last_event = None
+        self._attributes = {}
 
     @property
     def name(self):
@@ -19,11 +18,19 @@ class PeakSenseSensor(Entity):
 
     @property
     def extra_state_attributes(self):
-        return self._last_event or {}
+        return self._attributes
 
-    def update_from_power(self, value):
-        event = self._core.process_value(value)
+    def update_from_core(self):
+        core = self.hass.data["peaksense"]["core"]
+
+        event = core.last_event
 
         if event:
-            self._state = event["peak"]
-            self._last_event = event
+            self._state = event.get("peak")
+            self._attributes = {
+                "start": event.get("start"),
+                "end": event.get("end"),
+                "avg": event.get("avg"),
+                "duration": event.get("duration"),
+                "values": event.get("values"),
+            }
