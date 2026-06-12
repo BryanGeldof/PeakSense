@@ -1,32 +1,34 @@
-from homeassistant.helpers import discovery
+from homeassistant.core import HomeAssistant, ServiceCall
 from .coordinator import PeakSenseCore
-from .sensor import PeakSenseLastEventSensor
 
-async def async_setup(hass, config):
+DOMAIN = "peaksense"
+
+async def async_setup(hass: HomeAssistant, config: dict):
 
     core = PeakSenseCore()
 
-    sensor = PeakSenseLastEventSensor(hass)
+    hass.data[DOMAIN] = core
 
-    hass.data["peaksense"] = {
-        "core": core,
-        "sensor": sensor
-    }
-
-    async def handle_update(call):
+    async def handle_update(call: ServiceCall):
         value = float(call.data.get("value", 0))
+
         event = core.process_value(value)
 
-        sensor.update_from_core()
-
-        hass.states.async_set(
-            "sensor.peaksense_last_event",
-            sensor.state,
-            sensor.extra_state_attributes
-        )
+        if event:
+            hass.states.async_set(
+                "sensor.peaksense_last_event",
+                event["peak"],
+                {
+                    "start": event["start"],
+                    "end": event["end"],
+                    "avg": event["avg"],
+                    "duration": event["duration"],
+                    "values": event["values"],
+                }
+            )
 
     hass.services.async_register(
-        "peaksense",
+        DOMAIN,
         "update",
         handle_update
     )
