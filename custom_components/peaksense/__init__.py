@@ -1,41 +1,33 @@
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.config_entries import ConfigEntry
 from .coordinator import PeakSenseCore
-from homeassistant.helpers import discovery
+from .const import DOMAIN
 
-DOMAIN = "peaksense"
 
-print("PEAKSENSE LOADED")
-
-async def async_setup(hass: HomeAssistant, config: dict):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up PeakSense from a config entry (UI-based, no configuration.yaml needed)."""
 
     core = PeakSenseCore()
 
-    hass.data[DOMAIN] = core
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = core
 
-    discovery.load_platform(hass, "sensor", DOMAIN, {}, config)
-
+    # Register the service so automations can push power values into PeakSense
     async def handle_update(call: ServiceCall):
         value = float(call.data.get("value", 0))
+        core.process_value(value)
 
-        event = core.process_value(value)
+    hass.services.async_register(DOMAIN, "update", handle_update)
 
-        if event:
-            hass.states.async_set(
-                "sensor.peaksense_last_event",
-                event["peak"],
-                {
-                    "start": event["start"],
-                    "end": event["end"],
-                    "avg": event["avg"],
-                    "duration": event["duration"],
-                    "values": event["values"],
-                }
-            )
-
-    hass.services.async_register(
-        DOMAIN,
-        "update",
-        handle_update
-    )
+    # Load the sensor platform
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
 
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+    return unload_ok
