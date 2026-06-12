@@ -3,7 +3,6 @@
   "name": "PeakSense",
   "version": "0.1.0",
   "documentation": "https://github.com/yourrepo/peaksense",
-  "requirements": [],
-  "codeowners": [],
-  "iot_class": "local_polling"
+  "iot_class": "local_polling",
+  "codeowners": []
 }
