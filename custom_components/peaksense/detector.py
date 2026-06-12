@@ -1,40 +1,48 @@
-class SpikeDetector:
-    def __init__(self, start_threshold=800, end_threshold=300):
-        self.start_threshold = start_threshold
-        self.end_threshold = end_threshold
+import time
+
+class PeakDetector:
+    def __init__(self, core, threshold_factor=1.5):
+        self.core = core
         self.active = False
-        self.current_event = None
+        self.threshold_factor = threshold_factor
 
-    def process(self, value, timestamp):
-        event = None
+        self._start = None
+        self._values = []
 
-        # START SPIKE
-        if not self.active and value > self.start_threshold:
+    def process(self, value):
+        self.core.update_baseline(value)
+
+        threshold = max(50, self.core.baseline * self.threshold_factor)
+
+        if value > threshold and not self.active:
             self.active = True
-            self.current_event = {
-                "start": timestamp,
-                "values": [value]
-            }
+            self._start = time.time()
+            self._values = []
 
-        # ACTIVE SPIKE
-        elif self.active:
-            self.current_event["values"].append(value)
+        if self.active:
+            self._values.append(value)
 
-            # END SPIKE
-            if value < self.end_threshold:
-                self.active = False
-                self.current_event["end"] = timestamp
+            if value < threshold * 0.8:
+                self._finish()
 
-                event = self._finalize(self.current_event)
-                self.current_event = None
+    def _finish(self):
+        if not self._values:
+            return
 
-        return event
+        peak = max(self._values)
+        avg = sum(self._values) / len(self._values)
+        duration = int(time.time() - self._start)
 
-    def _finalize(self, event):
-        values = event["values"]
+        device = self.core.match_device(peak, duration)
 
-        event["peak"] = max(values)
-        event["avg"] = sum(values) / len(values)
-        event["duration"] = len(values)
+        self.core.last_event = {
+            "peak": peak,
+            "avg": avg,
+            "duration": duration,
+            "start": self._start,
+            "end": time.time(),
+            "device_guess": device,
+        }
 
-        return event
+        self.active = False
+        self._values = []
