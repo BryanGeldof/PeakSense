@@ -1,18 +1,28 @@
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from .const import DOMAIN
 
-DOMAIN = "peaksense"
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    core = hass.data.get(DOMAIN)
-    if core is None:
-        return False
-    sensor = PeakSenseLastEventSensor(hass, core)
-    async_add_entities([sensor])
-    return True
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up PeakSense sensors from a config entry."""
+    core = hass.data[DOMAIN][entry.entry_id]
+
+    async_add_entities([
+        PeakSenseLastEventSensor(core),
+        PeakSenseStatusSensor(core),
+    ])
+
 
 class PeakSenseLastEventSensor(Entity):
-    def __init__(self, hass, core):
-        self.hass = hass
+    """Shows the most recent detected power peak."""
+
+    def __init__(self, core):
         self._core = core
         self._state = None
         self._attributes = {}
@@ -30,6 +40,14 @@ class PeakSenseLastEventSensor(Entity):
         return self._state
 
     @property
+    def unit_of_measurement(self):
+        return "W"
+
+    @property
+    def icon(self):
+        return "mdi:lightning-bolt"
+
+    @property
     def extra_state_attributes(self):
         return self._attributes
 
@@ -40,7 +58,33 @@ class PeakSenseLastEventSensor(Entity):
             self._attributes = {
                 "start": event.get("start"),
                 "end": event.get("end"),
-                "avg": event.get("avg"),
-                "duration": event.get("duration"),
+                "average_w": event.get("avg"),
+                "duration_samples": event.get("duration"),
                 "label": event.get("label", "unknown"),
             }
+
+
+class PeakSenseStatusSensor(Entity):
+    """Shows whether a spike is currently being recorded."""
+
+    def __init__(self, core):
+        self._core = core
+
+    @property
+    def name(self):
+        return "PeakSense Status"
+
+    @property
+    def unique_id(self):
+        return "peaksense_status"
+
+    @property
+    def state(self):
+        return "active" if self._core.detector.active else "idle"
+
+    @property
+    def icon(self):
+        return "mdi:pulse" if self._core.detector.active else "mdi:sleep"
+
+    def update(self):
+        pass  # state is read live from core
