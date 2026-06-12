@@ -1,7 +1,7 @@
 import sqlite3
-import os
 
 DB_PATH = "/config/peaksense.db"
+
 
 class Storage:
     def __init__(self):
