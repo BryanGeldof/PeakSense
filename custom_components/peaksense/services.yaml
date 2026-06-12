@@ -1,7 +1,5 @@
-update:
-  name: Update PeakSense
-  description: Send power value to PeakSense engine
+train_device:
+  name: Train device
   fields:
-    value:
-      description: Power value
-      example: 1200
+    device:
+    peak:
