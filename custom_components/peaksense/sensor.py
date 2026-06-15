@@ -38,7 +38,6 @@ class PeakSenseLastEventSensor(Entity):
         self._core = core
         self._state = 0
         self._attributes = {}
-        _LOGGER.debug("PeakSenseLastEventSensor: __init__")
 
     @property
     def name(self):
@@ -88,7 +87,6 @@ class PeakSenseStatusSensor(Entity):
 
     def __init__(self, core):
         self._core = core
-        _LOGGER.debug("PeakSenseStatusSensor: __init__")
 
     @property
     def name(self):
