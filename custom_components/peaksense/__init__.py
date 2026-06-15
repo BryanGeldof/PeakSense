@@ -21,7 +21,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("PeakSense: Core initialized")
 
     # Service: peaksense.update
-    # Push a power reading in. Call this from an automation every ~5s.
     async def handle_update(call: ServiceCall):
         value = float(call.data.get("value", 0))
         _LOGGER.debug(f"PeakSense: update service called with value={value}")
@@ -33,7 +32,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("PeakSense: update service registered")
 
     # Service: peaksense.label_event
-    # Label an event by its database ID
     async def handle_label(call: ServiceCall):
         event_id = int(call.data.get("event_id"))
         label = str(call.data.get("label", "unknown"))
@@ -44,7 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "label_event", handle_label)
     _LOGGER.debug("PeakSense: label_event service registered")
 
-    # REST endpoint: GET /api/peaksense/events
+    # REST endpoint
     hass.http.register_view(PeakSenseEventsView(core))
     _LOGGER.debug("PeakSense: REST API endpoint registered")
 
