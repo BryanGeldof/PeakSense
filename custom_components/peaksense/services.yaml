@@ -1,5 +1,33 @@
-train_device:
-  name: Train device
+update:
+  name: Update
+  description: Send a power value to PeakSense
   fields:
-    device:
-    peak:
+    value:
+      name: Value
+      description: Power value in watts (W)
+      required: true
+      example: 1200
+      selector:
+        number:
+          min: 0
+          max: 10000
+
+label_event:
+  name: Label Event
+  description: Label a detected peak with a device name
+  fields:
+    event_id:
+      name: Event ID
+      description: The ID of the event to label
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+    label:
+      name: Label
+      description: Device name (e.g., "Washing Machine", "Oven")
+      required: true
+      example: "Washing Machine"
+      selector:
+        text:
