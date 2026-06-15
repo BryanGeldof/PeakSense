@@ -1,48 +1,37 @@
-import time
-
-class PeakDetector:
-    def __init__(self, core, threshold_factor=1.5):
-        self.core = core
+class SpikeDetector:
+    def __init__(self, start_threshold=800, end_threshold=300):
+        self.start_threshold = start_threshold
+        self.end_threshold = end_threshold
         self.active = False
-        self.threshold_factor = threshold_factor
+        self.current_event = None
 
-        self._start = None
-        self._values = []
+    def process(self, value, timestamp):
+        event = None
 
-    def process(self, value):
-        self.core.update_baseline(value)
-
-        threshold = max(50, self.core.baseline * self.threshold_factor)
-
-        if value > threshold and not self.active:
+        # START SPIKE
+        if not self.active and value > self.start_threshold:
             self.active = True
-            self._start = time.time()
-            self._values = []
+            self.current_event = {
+                "start": timestamp,
+                "values": [value]
+            }
 
-        if self.active:
-            self._values.append(value)
+        # ACTIVE SPIKE
+        elif self.active:
+            self.current_event["values"].append(value)
 
-            if value < threshold * 0.8:
-                self._finish()
+            # END SPIKE
+            if value < self.end_threshold:
+                self.active = False
+                self.current_event["end"] = timestamp
+                event = self._finalize(self.current_event)
+                self.current_event = None
 
-    def _finish(self):
-        if not self._values:
-            return
+        return event
 
-        peak = max(self._values)
-        avg = sum(self._values) / len(self._values)
-        duration = int(time.time() - self._start)
-
-        device = self.core.match_device(peak, duration)
-
-        self.core.last_event = {
-            "peak": peak,
-            "avg": avg,
-            "duration": duration,
-            "start": self._start,
-            "end": time.time(),
-            "device_guess": device,
-        }
-
-        self.active = False
-        self._values = []
+    def _finalize(self, event):
+        values = event["values"]
+        event["peak"] = max(values)
+        event["avg"] = round(sum(values) / len(values), 1)
+        event["duration"] = len(values)
+        return event
