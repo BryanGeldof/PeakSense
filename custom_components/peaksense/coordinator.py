@@ -1,29 +1,18 @@
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-import asyncio
+from .detector import SpikeDetector
+from .storage import Storage
+from datetime import datetime
 
-class PeakSenseCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, core, sensor_entity):
-        super().__init__(
-            hass,
-            logger=None,
-            name="peaksense",
-            update_interval=None,
-        )
 
-        self.core = core
-        self.sensor_entity = sensor_entity
+class PeakSenseCore:
+    def __init__(self):
+        self.detector = SpikeDetector()
+        self.storage = Storage()
+        self.last_event = None
 
-    async def async_refresh(self):
-        state = self.hass.states.get(self.sensor_entity)
-
-        if state is None:
-            return
-
-        try:
-            value = float(state.state)
-        except:
-            return
-
-        self.core.detector.process(value)
-
-        self.async_set_updated_data(self.core.last_event)
+    def process_value(self, value: float):
+        event = self.detector.process(value, datetime.now().isoformat())
+        if event:
+            self.storage.save_event(event)
+            self.last_event = event
+            return event
+        return None
