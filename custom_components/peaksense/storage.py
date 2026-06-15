@@ -1,4 +1,5 @@
 import sqlite3
+import os
 
 DB_PATH = "/config/peaksense.db"
 
@@ -8,6 +9,9 @@ class Storage:
         self._init_db()
 
     def _init_db(self):
+        # Make sure /config exists
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute("""
@@ -49,7 +53,7 @@ class Storage:
         conn.commit()
         conn.close()
 
-    def get_recent_events(self, limit: int = 50):
+    def get_recent_events(self, limit: int = 100):
         """Return the most recent events as a list of dicts."""
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
