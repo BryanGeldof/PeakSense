@@ -2,8 +2,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "PeakSense instellen",
-        "description": "Klik op Versturen om PeakSense te activeren. Daarna verschijnen de sensoren automatisch."
+        "title": "PeakSense",
+        "description": "Klik op Versturen om PeakSense in te stellen."
       }
     },
     "abort": {
