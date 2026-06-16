@@ -1,12 +1,37 @@
-# PeakSense
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-PeakSense is a local Home Assistant energy intelligence system.
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
-## Features (v0.1)
-- Automatic power spike detection
-- Event creation (start / end)
-- SQLite storage
-- Peak / average / duration calculation
+# Home Assistant
+peaksense.db
+*.log
 
-## Goal
-Turn raw energy data into labeled appliance events.
+# Local testing
+test_local/
+temp/
