@@ -1,3 +1,5 @@
+"""PeakSense sensors."""
+
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -15,22 +17,21 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up PeakSense sensors from a config entry."""
-    _LOGGER.debug("PeakSense: sensor setup_entry called")
-    
+    """Set up sensors."""
     core = hass.data[DOMAIN][entry.entry_id]
     
     entities = [
         PeakSenseLastEventSensor(core),
         PeakSenseStatusSensor(core),
+        PeakSenseCurrentDeviceSensor(core),
+        PeakSenseConfidenceSensor(core),
     ]
     
-    _LOGGER.debug(f"PeakSense: adding {len(entities)} entities")
     async_add_entities(entities, update_before_add=True)
 
 
 class PeakSenseLastEventSensor(Entity):
-    """Shows the peak wattage of the last detected spike."""
+    """Last event peak."""
 
     _attr_has_entity_name = True
 
@@ -64,16 +65,19 @@ class PeakSenseLastEventSensor(Entity):
         return self._attributes
 
     def update(self):
-        """Fetch new state data."""
+        """Update state."""
         event = self._core.last_event
         if event:
             self._state = event.get("peak", 0)
             self._attributes = {
+                "id": event.get("id"),
                 "start": event.get("start"),
                 "end": event.get("end"),
                 "average_w": event.get("avg"),
                 "duration_samples": event.get("duration"),
                 "label": event.get("label", "unknown"),
+                "device": self._core.current_device or "unknown",
+                "confidence": self._core.current_confidence,
             }
         else:
             self._state = 0
@@ -81,7 +85,7 @@ class PeakSenseLastEventSensor(Entity):
 
 
 class PeakSenseStatusSensor(Entity):
-    """Shows whether a spike is currently being recorded."""
+    """Spike detection status."""
 
     _attr_has_entity_name = True
 
@@ -105,5 +109,73 @@ class PeakSenseStatusSensor(Entity):
         return "mdi:pulse" if self._core.detector.active else "mdi:sleep"
 
     def update(self):
-        """No need to fetch anything, state is read live."""
+        """State is live."""
+        pass
+
+
+class PeakSenseCurrentDeviceSensor(Entity):
+    """Detected device."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, core):
+        self._core = core
+
+    @property
+    def name(self):
+        return "Current Device"
+
+    @property
+    def unique_id(self):
+        return "peaksense_current_device"
+
+    @property
+    def state(self):
+        return self._core.current_device or "unknown"
+
+    @property
+    def icon(self):
+        return "mdi:devices"
+
+    def update(self):
+        """State is live."""
+        pass
+
+
+class PeakSenseConfidenceSensor(Entity):
+    """Detection confidence."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, core):
+        self._core = core
+
+    @property
+    def name(self):
+        return "Detection Confidence"
+
+    @property
+    def unique_id(self):
+        return "peaksense_confidence"
+
+    @property
+    def state(self):
+        return round(self._core.current_confidence * 100, 0)
+
+    @property
+    def unit_of_measurement(self):
+        return "%"
+
+    @property
+    def icon(self):
+        confidence = self._core.current_confidence
+        if confidence >= 0.8:
+            return "mdi:check-circle"
+        elif confidence >= 0.5:
+            return "mdi:alert-circle"
+        else:
+            return "mdi:help-circle"
+
+    def update(self):
+        """State is live."""
         pass

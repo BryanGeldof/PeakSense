@@ -1,33 +1,105 @@
 update:
   name: Update
-  description: Send a power value to PeakSense
   fields:
     value:
       name: Value
-      description: Power value in watts (W)
-      required: true
-      example: 1200
       selector:
         number:
           min: 0
-          max: 10000
 
-label_event:
-  name: Label Event
-  description: Label a detected peak with a device name
+register_device:
+  name: Register Device
+  fields:
+    name:
+      name: Device Name
+      required: true
+      selector:
+        text:
+    standby_power:
+      name: Standby Power
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+
+record_signature:
+  name: Record Signature
   fields:
     event_id:
       name: Event ID
-      description: The ID of the event to label
       required: true
-      example: 1
+      selector:
+        number:
+          min: 1
+    device_id:
+      name: Device ID
+      required: true
+      selector:
+        number:
+          min: 1
+
+label_event:
+  name: Label Event
+  fields:
+    event_id:
+      name: Event ID
+      required: true
       selector:
         number:
           min: 1
     label:
       name: Label
-      description: Device name (e.g., "Washing Machine", "Oven")
       required: true
-      example: "Washing Machine"
       selector:
         text:
+
+provide_feedback:
+  name: Provide Feedback
+  fields:
+    event_id:
+      name: Event ID
+      required: true
+      selector:
+        number:
+          min: 1
+    device_id:
+      name: Device ID
+      required: true
+      selector:
+        number:
+          min: 1
+    is_correct:
+      name: Is Correct
+      required: true
+      selector:
+        boolean:
+
+update_device:
+  name: Update Device
+  fields:
+    device_id:
+      name: Device ID
+      required: true
+      selector:
+        number:
+          min: 1
+    name:
+      name: Name
+      selector:
+        text:
+    standby_power:
+      name: Standby Power
+      selector:
+        number:
+          min: 0
+
+delete_device:
+  name: Delete Device
+  fields:
+    device_id:
+      name: Device ID
+      required: true
+      selector:
+        number:
+          min: 1
