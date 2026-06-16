@@ -2,12 +2,16 @@
   "config": {
     "step": {
       "user": {
-        "title": "PeakSense",
-        "description": "Klik op Versturen om PeakSense in te stellen."
+        "title": "PeakSense Setup",
+        "description": "Select your power meter sensor"
+      },
+      "devices": {
+        "title": "Add Devices",
+        "description": "Add devices you want to monitor (optional, can be added later)"
       }
     },
     "abort": {
-      "already_configured": "PeakSense is al ingesteld."
+      "already_configured": "PeakSense is already configured."
     }
   }
 }
