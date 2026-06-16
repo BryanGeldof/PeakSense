@@ -1,7 +1,7 @@
 {
   "domain": "peaksense",
   "name": "PeakSense",
-  "version": "0.3.2",
+  "version": "0.4.1",
   "documentation": "https://github.com/BryanGeldof/PeakSense",
   "iot_class": "local_polling",
   "config_flow": true,
