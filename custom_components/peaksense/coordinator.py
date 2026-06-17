@@ -1,99 +1,53 @@
-"""Core PeakSense coordinator."""
-
 import logging
 from datetime import datetime
-
 from .detector import SpikeDetector
 from .storage import Storage
 from .pattern_matcher import PatternMatcher
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class PeakSenseCore:
-    """Main coordinator."""
-
     def __init__(self):
         self.detector = SpikeDetector()
         self.storage = Storage()
         self.matcher = PatternMatcher()
         self.matcher.storage = self.storage
-        
         self.last_event = None
         self.current_device = None
         self.current_confidence = 0
+        self.device_powers = {}
 
-    def process_value(self, value: float) -> dict:
-        """Process power value."""
+    def process_value(self, value: float):
         event = self.detector.process(value, datetime.now().isoformat())
-
         if event:
-            event_id = self.storage.save_event(event)
-            event['id'] = event_id
-            
+            eid = self.storage.save_event(event)
+            event['id'] = eid
             devices = self.storage.get_all_devices()
             detection = self.matcher.match_event(event, devices)
             
-            if detection['confidence'] > 0:
-                if detection['device_id']:
-                    self.storage.update_event_device(
-                        event_id,
-                        detection['device_id'],
-                        detection['confidence']
-                    )
-                    self.storage.record_detection(
-                        event_id,
-                        detection['device_id'],
-                        detection['confidence']
-                    )
-                    _LOGGER.info(
-                        f"Detected: {detection['device_name']} "
-                        f"({detection['confidence']*100:.0f}% confidence)"
-                    )
+            if detection['device_id']:
+                self.storage.update_event_device(eid, detection['device_id'], detection['confidence'])
+                self.device_powers[detection['device_name']] = event['peak']
+                _LOGGER.info(f"Detected: {detection['device_name']} ({detection['confidence']*100:.0f}%)")
             
             self.last_event = event
             self.current_device = detection['device_name']
             self.current_confidence = detection['confidence']
-            
             return event
-
         return None
 
-    def register_device(self, name: str, standby_power: float = 0, notes: str = "") -> int:
-        """Register device."""
-        device_id = self.storage.create_device(name, standby_power, notes)
-        _LOGGER.info(f"Registered device: {name}")
-        return device_id
+    def register_device(self, name: str, standby_power: float = 0):
+        did = self.storage.create_device(name, standby_power)
+        _LOGGER.info(f"Registered: {name}")
+        return did
 
-    def record_device_signature(self, device_id: int, event: dict) -> None:
-        """Record signature."""
+    def record_signature(self, device_id: int, event: dict):
         self.storage.record_signature(device_id, event)
-        _LOGGER.info(f"Recorded signature for device {device_id}: {event['peak']}W peak")
+        _LOGGER.info(f"Signature recorded for device {device_id}: {event['peak']}W")
 
-    def get_device_stats(self, device_id: int) -> dict:
-        """Get stats."""
-        return self.storage.get_device_statistics(device_id)
-
-    def get_all_devices(self) -> list:
-        """Get all devices."""
+    def get_all_devices(self):
         return self.storage.get_all_devices()
 
-    def delete_device(self, device_id: int) -> None:
-        """Delete device."""
+    def delete_device(self, device_id: int):
         self.storage.delete_device(device_id)
         _LOGGER.info(f"Deleted device {device_id}")
-
-    def update_device(self, device_id: int, **kwargs) -> None:
-        """Update device."""
-        self.storage.update_device(device_id, **kwargs)
-        _LOGGER.info(f"Updated device {device_id}")
-
-    def provide_feedback(self, event_id: int, device_id: int, is_correct: bool) -> None:
-        """Provide feedback."""
-        if is_correct:
-            event = self.storage.get_recent_events(1)[0]
-            if event['id'] == event_id:
-                self.record_device_signature(device_id, event)
-                _LOGGER.info(f"Learning: confirmed {device_id} for event {event_id}")
-        else:
-            _LOGGER.info(f"Feedback: detection was incorrect for event {event_id}")

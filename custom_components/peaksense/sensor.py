@@ -1,4 +1,4 @@
-"""PeakSense sensors."""
+"""PeakSense sensors - including dynamic per-device power sensors."""
 
 import logging
 
@@ -17,7 +17,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up sensors."""
+    """Setup sensors."""
     core = hass.data[DOMAIN][entry.entry_id]
     
     entities = [
@@ -27,12 +27,16 @@ async def async_setup_entry(
         PeakSenseConfidenceSensor(core),
     ]
     
+    # Add per-device power sensors
+    devices = core.get_all_devices()
+    for device in devices:
+        entities.append(DevicePowerSensor(core, device['id'], device['name']))
+    
     async_add_entities(entities, update_before_add=True)
 
 
 class PeakSenseLastEventSensor(Entity):
-    """Last event peak."""
-
+    """Last event peak (W)."""
     _attr_has_entity_name = True
 
     def __init__(self, core):
@@ -65,7 +69,6 @@ class PeakSenseLastEventSensor(Entity):
         return self._attributes
 
     def update(self):
-        """Update state."""
         event = self._core.last_event
         if event:
             self._state = event.get("peak", 0)
@@ -75,18 +78,11 @@ class PeakSenseLastEventSensor(Entity):
                 "end": event.get("end"),
                 "average_w": event.get("avg"),
                 "duration_samples": event.get("duration"),
-                "label": event.get("label", "unknown"),
-                "device": self._core.current_device or "unknown",
-                "confidence": self._core.current_confidence,
             }
-        else:
-            self._state = 0
-            self._attributes = {}
 
 
 class PeakSenseStatusSensor(Entity):
     """Spike detection status."""
-
     _attr_has_entity_name = True
 
     def __init__(self, core):
@@ -109,13 +105,11 @@ class PeakSenseStatusSensor(Entity):
         return "mdi:pulse" if self._core.detector.active else "mdi:sleep"
 
     def update(self):
-        """State is live."""
         pass
 
 
 class PeakSenseCurrentDeviceSensor(Entity):
-    """Detected device."""
-
+    """Currently detected device."""
     _attr_has_entity_name = True
 
     def __init__(self, core):
@@ -138,13 +132,11 @@ class PeakSenseCurrentDeviceSensor(Entity):
         return "mdi:devices"
 
     def update(self):
-        """State is live."""
         pass
 
 
 class PeakSenseConfidenceSensor(Entity):
-    """Detection confidence."""
-
+    """Detection confidence (%)."""
     _attr_has_entity_name = True
 
     def __init__(self, core):
@@ -168,14 +160,49 @@ class PeakSenseConfidenceSensor(Entity):
 
     @property
     def icon(self):
-        confidence = self._core.current_confidence
-        if confidence >= 0.8:
-            return "mdi:check-circle"
-        elif confidence >= 0.5:
-            return "mdi:alert-circle"
-        else:
-            return "mdi:help-circle"
+        conf = self._core.current_confidence
+        return "mdi:check-circle" if conf >= 0.8 else "mdi:alert-circle" if conf >= 0.5 else "mdi:help-circle"
 
     def update(self):
-        """State is live."""
         pass
+
+
+class DevicePowerSensor(Entity):
+    """Per-device power consumption (last detected peak)."""
+
+    def __init__(self, core, device_id, device_name):
+        self._core = core
+        self._device_id = device_id
+        self._device_name = device_name
+        self._state = 0
+
+    @property
+    def name(self):
+        return f"{self._device_name} Power"
+
+    @property
+    def unique_id(self):
+        return f"peaksense_{self._device_name.lower().replace(' ', '_')}_power"
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        return "W"
+
+    @property
+    def icon(self):
+        return "mdi:power-socket"
+
+    @property
+    def device_class(self):
+        return "power"
+
+    def update(self):
+        """Update with last known power for this device."""
+        if self._device_name in self._core.device_powers:
+            self._state = self._core.device_powers[self._device_name]
+        else:
+            self._state = 0
