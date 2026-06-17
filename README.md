@@ -1,267 +1,198 @@
-# ⚡ PeakSense v0.5.0
+# ⚡ PeakSense v0.6.0
 
-**Intelligent Power Spike Detection & Device Recognition for Home Assistant**
+**Automatic Household Device Detection for Home Assistant - NO CODE Setup**
 
-Automatically detect which household device is using power based on its unique consumption fingerprint.
+> Automatically recognize which device is using power by analyzing the unique "fingerprint" of its consumption pattern.
 
-## 🎯 Features
+## 🎯 What is PeakSense?
 
-✅ **Interactive Setup** — Configure your power meter and devices during installation  
-✅ **Device Auto-Learning** — Records spike patterns (signatures) for recognition  
-✅ **Intelligent Matching** — AI-based similarity scoring (peak, average, duration, shape)  
-✅ **Easy Management** — Add/edit/delete devices anytime via services or UI  
-✅ **Confidence Scoring** — See how sure the system is (0-100%)  
-✅ **Feedback Training** — Improve accuracy by correcting detections  
-✅ **REST API** — Full access to events, devices, and statistics  
-✅ **SQLite Database** — All data stored locally, no cloud required  
+PeakSense watches your home's power consumption and learns to recognize each appliance by the distinct way it uses electricity. Once trained, it tells you which device is running in real-time.
+
+### Perfect for:
+- 🔌 Energy monitoring and optimization
+- 📊 Home Assistant Energy Dashboard
+- 🏠 Smart home automation
+- ⚡ Understanding which devices consume power
 
 ---
 
-## 🚀 Installation (3 steps)
+## ⚡ Installation (2 Minutes - NO CODE!)
 
 ### Step 1: Install via HACS
 
 ```
-HACS → Integrations → + Custom repositories
-Repository: https://github.com/BryanGeldof/PeakSense
-Category: Integration
-→ Install → Restart HA
+HACS → Integrations → Custom Repositories
+Add: https://github.com/BryanGeldof/PeakSense
+Type: Integration
+→ Install → Restart Home Assistant
 ```
 
-### Step 2: Add Integration & Configure
+### Step 2: Configure (Interactive Setup)
 
 **Settings → Devices & Services → + Add Integration → PeakSense**
 
-You will be asked:
-1. **Power Meter** — Select your home's total power consumption sensor
-2. **Devices** — (Optional) Add devices now or add them later
+The setup wizard will ask you:
+1. **Select your power meter** (sensor or custom calculation like grid-solar+battery)
+2. **Add devices to monitor** (optional - can add anytime later)
 
-That's it! ✅
-
-### Step 3: Create Automation
-
-**Settings → Automations → Create New**
-
-```yaml
-alias: Feed power to PeakSense
-trigger:
-  - platform: state
-    entity_id: sensor.p1_meter_total_power  # YOUR POWER METER!
-action:
-  - service: peaksense.update
-    data:
-      value: "{{ states('sensor.p1_meter_total_power') | float }}"
-mode: queued
-```
+**That's it!** ✅ Automation is created automatically!
 
 ---
 
 ## 📊 What You Get
 
-After setup, you have **4 new sensors**:
-- `sensor.peaksense_last_event` — Peak wattage
-- `sensor.peaksense_status` — Active/idle
-- `sensor.peaksense_current_device` — Detected device name
-- `sensor.peaksense_detection_confidence` — Confidence %
+After setup, 5 new sensors appear:
+
+| Sensor | Shows | Example |
+|--------|-------|---------|
+| `sensor.peaksense_last_event` | Peak power of last spike | 1850 W |
+| `sensor.peaksense_status` | Is a spike happening? | active / idle |
+| `sensor.peaksense_current_device` | Detected device | "Washing Machine" |
+| `sensor.peaksense_detection_confidence` | How sure? | 92% |
+| `sensor.{device_name}_power` | Per-device power | "Washing Machine Power": 1850 W |
+
+**Per-device sensors can be added directly to Energy Dashboard!**
 
 ---
 
-## 🎓 Training a Device (5 minutes)
+## 🎓 Training Your First Device (5 Minutes)
 
 ### 1. Register Device
 
 **Developer Tools → Services**
 
-```yaml
-service: peaksense.register_device
-data:
+```
+Service: peaksense.register_device
+Data:
   name: "Washing Machine"
   standby_power: 2
-  notes: "ASKO W6984"
 ```
 
 ### 2. Run Device 5 Times
 
-Turn on your washing machine (or other device) and let it run.
+Turn on your washing machine and let it complete its cycle.
 
 ### 3. Record Signatures
 
-For each run:
-- Find `sensor.peaksense_last_event` → look at the `id`
+After each run:
+- Look at `sensor.peaksense_last_event` → note the `id`
 - Call:
 
-```yaml
-service: peaksense.record_signature
-data:
+```
+Service: peaksense.record_signature
+Data:
   event_id: 5
   device_id: 1
 ```
 
 ### 4. Test
 
-Next time you run the device, check `sensor.peaksense_current_device` — it should detect it automatically!
+Next time you run the device, `sensor.peaksense_current_device` should show "Washing Machine" automatically!
 
 ---
 
-## 🔧 Services
+## 🎨 Using in Energy Dashboard
+
+1. **Settings → Dashboards → Energy**
+2. **Configure consumption**
+3. Add sensor: `sensor.washing_machine_power` (or any device you trained)
+
+Now your Energy Dashboard shows each device's consumption!
+
+---
+
+## 💡 How It Works (In Plain English)
+
+1. **Detects spikes** — When power jumps above 800W, PeakSense starts listening
+2. **Records pattern** — Stores peak wattage, average, duration, and shape
+3. **Learns signatures** — After 5 similar spikes, it recognizes the device
+4. **Matches patterns** — When a new spike matches a known device, it identifies it
+5. **Shows power** — Stores the power value in a sensor for that device
+
+### Example:
+```
+Your Washing Machine uses 1900W
+After 5 training runs, PeakSense knows: 1900W peak = Washing Machine
+Tomorrow when you run it again: 1850W peak → "Ah, that's the Washing Machine!" (92% confidence)
+```
+
+---
+
+## 🔧 Services (For Advanced Users)
 
 ### peaksense.update
-Send a power value
-```yaml
-service: peaksense.update
-data:
-  value: 1500
+Manually send a power value (normally automatic):
+```
+Data: {"value": 1200}
 ```
 
 ### peaksense.register_device
-Register a new device
-```yaml
-service: peaksense.register_device
-data:
-  name: "Coffee Machine"
-  standby_power: 3
-  notes: "Delonghi Magnifica"
+Register a new device:
+```
+Data: {"name": "Coffee Machine", "standby_power": 3}
 ```
 
 ### peaksense.record_signature
-Train on a spike
-```yaml
-service: peaksense.record_signature
-data:
-  event_id: 42
-  device_id: 1
+Record a spike as training data:
 ```
-
-### peaksense.provide_feedback
-Improve with feedback
-```yaml
-service: peaksense.provide_feedback
-data:
-  event_id: 42
-  device_id: 1
-  is_correct: true
-```
-
-### peaksense.update_device
-Change device settings
-```yaml
-service: peaksense.update_device
-data:
-  device_id: 1
-  standby_power: 5
+Data: {"event_id": 5, "device_id": 1}
 ```
 
 ### peaksense.delete_device
-Remove a device
-```yaml
-service: peaksense.delete_device
-data:
-  device_id: 1
+Remove a device:
+```
+Data: {"device_id": 1}
 ```
 
 ---
 
-## 📈 REST API
+## ❓ FAQ
 
-### GET `/api/peaksense/events`
-All spike events
+**Q: Do I need to write automations?**  
+A: NO! PeakSense auto-creates the automation that reads your power meter.
 
-### GET `/api/peaksense/devices`
-All devices with statistics
+**Q: Can I use a calculated power (grid - solar + battery)?**  
+A: YES! During setup, select any sensor or helper (custom calculation).
 
-### GET `/api/peaksense/stats`
-Accuracy statistics
+**Q: How many devices can I train?**  
+A: Unlimited! Add as many as you want.
 
----
+**Q: How accurate is it?**  
+A: Very! With 5+ training runs, accuracy is usually 90%+. More runs = more accurate.
 
-## ⚙️ Configuration Changes
+**Q: Can I see which device is using power right now?**  
+A: YES! Check `sensor.peaksense_current_device` and the per-device power sensors.
 
-To change your power meter or add devices later:
+**Q: Does it work with solar panels and batteries?**  
+A: YES! Use your net consumption (grid - solar + battery discharge).
 
-1. **Settings → Devices & Services → PeakSense**
-2. Click the entry
-3. Click the gear icon (options)
-4. Edit power meter or devices
-
----
-
-## 📋 Example: Full Setup
-
-```yaml
-# 1. Register devices
-- service: peaksense.register_device
-  data:
-    name: "Washing Machine"
-    standby_power: 2
-
-- service: peaksense.register_device
-  data:
-    name: "Coffee Machine"
-    standby_power: 3
-
-# 2. Record signatures (when devices run)
-- service: peaksense.record_signature
-  data:
-    event_id: 1
-    device_id: 1
-
-# 3. Feedback for improvement
-- service: peaksense.provide_feedback
-  data:
-    event_id: 1
-    device_id: 1
-    is_correct: true
-```
+**Q: Can I add this to Energy Dashboard?**  
+A: YES! Use the per-device sensors like `sensor.washing_machine_power`.
 
 ---
 
-## 🎨 Dashboard Example
+## 🚀 Next Steps
 
-```yaml
-type: vertical-stack
-cards:
-  - type: entities
-    entities:
-      - sensor.peaksense_last_event
-      - sensor.peaksense_status
-      - sensor.peaksense_current_device
-      - sensor.peaksense_detection_confidence
-
-  - type: button
-    name: Test 1000W
-    action_type: call-service
-    service: peaksense.update
-    service_data:
-      value: 1000
-```
+1. ✅ Set up PeakSense
+2. ✅ Train your first device (5 runs)
+3. ✅ Add device sensor to Energy Dashboard
+4. ✅ Train more devices
+5. ✅ Watch PeakSense identify your appliances!
 
 ---
 
-## 🆘 Troubleshooting
+## 📞 Getting Help
 
-| Problem | Solution |
-|---------|----------|
-| No spikes detected | Check automation is running, verify power meter is correct |
-| Wrong device detected | Need more training (5-7 signatures per device) |
-| Low confidence | Device signatures might be too similar |
-| Can't find event ID | Look in `sensor.peaksense_last_event` attributes |
-
----
-
-## 📊 Database
-
-Data is stored in `/config/peaksense.db` (SQLite):
-- `events` — Detected spikes
-- `devices` — Registered devices
-- `signatures` — Learning data
-- `detections` — Recognition results
+- **Settings → System → Logs** - Search for "peaksense" to see what's happening
+- **Developer Tools → Services** - Test services manually
+- **GitHub Issues** - Report problems
 
 ---
 
 ## 📜 License
 
-MIT License
+MIT - Free to use and modify
 
 ---
 
-**Happy device detection!** ⚡
+**Enjoy automatic device detection!** ⚡
